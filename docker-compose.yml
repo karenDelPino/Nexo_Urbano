@@ -16,7 +16,7 @@ services:
       MYSQL_ROOT_PASSWORD: nexo
       MYSQL_DATABASE: crm
     ports:
-      - "3306:3307"
+      - "3307:3307"
     volumes:
       - ./data/mysql/crm_riders.sql:/docker-entrypoint-initdb.d/01_crm.sql:ro
       - mysql_data:/var/lib/mysql
@@ -61,7 +61,7 @@ services:
       - neo4j_data:/data
 
   minio:
-    image: minio/minio:latest
+    image: quay.io/minio/minio:latest
     container_name: nexo-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
