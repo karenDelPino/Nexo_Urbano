@@ -1,8 +1,8 @@
 import pandas as pd
 
 # 1. Carga de datos
-# Reemplaza con el nombre real de tu archivo
-df = pd.read_csv('../data/tu_archivo_de_viajes.csv') 
+# Leemos la muestra sintética generada por el script de NexoUrbano
+df = pd.read_csv('data/viajes_muestra.csv') 
 
 print("================ PERFILADO DE DATOS ================\n")
 
@@ -12,14 +12,13 @@ print(df.info())
 print("\nConteo de Nulos por columna:")
 print(df.isnull().sum())
 
-# 3. Cardinalidad (cuántos valores únicos hay por columna)
+# 3. Cardinalidad
 print("\n--- 2. Cardinalidad ---")
 print(df.nunique())
 
-# 4. Outliers (Para esto necesitamos calcular la duración del viaje)
-df['started_at'] = pd.to_datetime(df['started_at'])
-df['ended_at'] = pd.to_datetime(df['ended_at'])
-df['duracion_minutos'] = (df['ended_at'] - df['started_at']).dt.total_seconds() / 60
+# 4. Outliers 
+# El dataset sintético trae la columna 'duration_s' en segundos.
+df['duracion_minutos'] = df['duration_s'] / 60
 
 print("\n--- 3. Detección de Outliers (Duración en minutos) ---")
 print(df['duracion_minutos'].describe())
@@ -29,8 +28,11 @@ viajes_muy_largos = len(df[df['duracion_minutos'] > 240]) # Más de 4 horas
 print(f"Viajes absurdamente cortos (< 1 min): {viajes_muy_cortos}")
 print(f"Viajes absurdamente largos (> 4 horas): {viajes_muy_largos}")
 
-# 5. Drift Temporal (Ver si la distribución de viajes cambia en el tiempo)
+# 5. Drift Temporal (Distribución de viajes a lo largo del tiempo)
 print("\n--- 4. Drift Temporal (Distribución por día) ---")
-df['fecha'] = df['started_at'].dt.date
+# Usamos 'ts_start'
+df['ts_start'] = pd.to_datetime(df['ts_start'])
+df['fecha'] = df['ts_start'].dt.date
 conteo_por_dia = df.groupby('fecha').size()
-print(conteo_por_dia.head(10)) # Muestra los primeros 10 días
+
+print(conteo_por_dia.head(15))
