@@ -31,3 +31,21 @@ Luego cada squad copia la estructura de carpetas del enunciado a **su** reposito
 - Hadoop/Hive/HBase: sandbox Docker de la cátedra o el que documente el squad.
 
 Azure y Databricks van por **cuenta free / Community**. Si piden tarjeta, MinIO + Spark local con ADR de paridad (está permitido en el enunciado).
+
+## M2 - Azure Data Lake
+
+**Suscripción:** Azure subscription 1
+**Región:** Brazil South
+**SKU:** Standard_LRS
+
+**URI del dataset en Bronze:**
+
+​```
+abfss://bronze@nexourbanodata2026.dfs.core.windows.net/viajes/2026/09/16/viajes.csv
+​```
+
+**Evidencia del contenedor:**
+![Listado del contenedor bronze](evidencias/azure/captura-azure.png)
+
+
+
