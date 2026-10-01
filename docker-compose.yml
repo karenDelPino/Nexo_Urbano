@@ -73,6 +73,18 @@ services:
       - "9001:9001"
     volumes:
       - minio_data:/data
+  hadoop:
+    image: apache/hadoop:3
+    container_name: nexo-hadoop
+    restart: unless-stopped
+    ports:
+      - "9870:9870"
+      - "8088:8088"
+    command: >
+      bash -c "/opt/hadoop/bin/hdfs namenode -format -force && 
+      /opt/hadoop/bin/hdfs --daemon start namenode && 
+      /opt/hadoop/bin/hdfs --daemon start datanode && 
+      tail -f /dev/null"
 
 volumes:
   mysql_data:
