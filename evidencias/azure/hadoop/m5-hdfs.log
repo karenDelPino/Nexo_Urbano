@@ -1,0 +1,106 @@
+# Punto 1 - Creación de directorios y carga de archivos en HDFS
+
+bash-4.2$ hdfs dfs -mkdir -p /nexo/bronze/viajes /nexo/bronze/logs
+bash-4.2$ hdfs dfs -ls -R /nexo
+drwxr-xr-x   - hadoop supergroup          0 2026-10-01 22:41 /nexo/bronze
+drwxr-xr-x   - hadoop supergroup          0 2026-10-01 22:41 /nexo/bronze/logs
+drwxr-xr-x   - hadoop supergroup          0 2026-10-01 22:41 /nexo/bronze/viajes
+bash-4.2$ hdfs dfs -put /tmp/viajes_muestra.csv /nexo/bronze/viajes/
+bash-4.2$ hdfs dfs -ls -R /nexo
+drwxr-xr-x   - hadoop supergroup          0 2026-10-01 22:41 /nexo/bronze
+drwxr-xr-x   - hadoop supergroup          0 2026-10-01 22:41 /nexo/bronze/logs
+drwxr-xr-x   - hadoop supergroup          0 2026-10-01 22:47 /nexo/bronze/viajes
+-rw-r--r--   3 hadoop supergroup     335181 2026-10-01 22:47 /nexo/bronze/viajes/viajes_muestra.csv
+bash-4.2$ hdfs dfs -cp /nexo/bronze/viajes/viajes_muestra.csv /nexo/bronze/viajes/backup/
+cp: `/nexo/bronze/viajes/backup/': No such file or directory: `hdfs://localhost:9000/nexo/bronze/viajes/backup'
+bash-4.2$ hdfs dfs -mkdir -p /nexo/bronze/viajes/backup
+bash-4.2$ hdfs dfs -cp /nexo/bronze/viajes/viajes_muestra.csv /nexo/bronze/viajes/backup/
+bash-4.2$ hdfs dfs -ls -R /nexo
+drwxr-xr-x   - hadoop supergroup          0 2026-10-01 22:41 /nexo/bronze
+drwxr-xr-x   - hadoop supergroup          0 2026-10-01 22:41 /nexo/bronze/logs
+drwxr-xr-x   - hadoop supergroup          0 2026-10-01 23:14 /nexo/bronze/viajes
+drwxr-xr-x   - hadoop supergroup          0 2026-10-01 23:14 /nexo/bronze/viajes/backup
+-rw-r--r--   3 hadoop supergroup     335181 2026-10-01 23:14 /nexo/bronze/viajes/backup/viajes_muestra.csv
+-rw-r--r--   3 hadoop supergroup     335181 2026-10-01 22:47 /nexo/bronze/viajes/viajes_muestra.csv
+bash-4.2$ hdfs dfs -mv /nexo/bronze/viajes/backup/viajes_muestra.csv /nexo/bronze/logs/viajes_backup.csv
+bash-4.2$ hdfs dfs -du -h /nexo
+654.7 K  1.9 M  /nexo/bronze
+
+
+
+
+
+
+#Punto 2 - Bloque, Replicación y Tolerancia a fallos (HDFS) 
+#
+# Tamaño de bloque: no lo configuramos manualmente, por lo que se usó
+# el valor por defecto de HDFS (128 MB). Nuestro archivo de prueba
+# (viajes_muestra.csv, 335181 bytes) es mucho menor a ese tamaño, así
+# que ocupó un solo bloque en vez de dividirse en varios.
+#
+# Factor de replicación: en el listado de -ls -R se ve el número "3"
+# antes del propietario del archivo (hadoop supergroup) - ese es el
+# factor de replicación por defecto. Significa que HDFS guarda 3 copias
+# idénticas de cada bloque, normalmente en distintos DataNodes, para
+# no depender de una sola máquina.
+#
+# Qué pasa si muere 1 DataNode: en un clúster real con varios nodos,
+# como hay 3 réplicas de cada bloque, si se cae un DataNode el clúster
+# sigue funcionando con las copias que quedan en los otros nodos. El
+# NameNode detecta la falta de ese nodo (deja de recibir su heartbeat)
+# y ordena crear una nueva réplica en otro DataNode sano. Aclaración:
+# nuestro entorno de prueba corrió con un único DataNode (un solo
+# contenedor), así que en este caso particular, si se cayera, se
+# perdería el acceso a los datos - el factor de replicación 3 solo
+# protege de verdad cuando hay al menos 3 DataNodes distintos
+# disponibles en el clúster.
+
+
+
+# Punto  3 - WordCount sobre texto_ops.txt
+
+# Subida del archivo de texto a HDFS:
+bash-4.2$ hdfs dfs -mkdir -p /nexo/bronze/texto
+bash-4.2$ hdfs dfs -put /tmp/texto_ops.txt /nexo/bronze/texto/
+
+# Comando para enviar el trabajo de MapReduce:
+bash-4.2$ hadoop jar /opt/hadoop/share/hadoop/mapreduce/hadoop-mapreduce-examples-3.3.6.jar wordcount /nexo/bronze/texto/texto_ops.txt /nexo/gold/wordcount
+
+# Resultado (resumen de métricas del job):
+Map input records=2400
+Map output records=15866
+Reduce input groups=260
+Reduce output records=260
+Shuffle Errors: todos en 0 (sin fallos)
+Bytes Written=2267
+
+# Verificación del archivo de salida:
+bash-4.2$ hdfs dfs -ls /nexo/gold/wordcount
+Found 2 items
+-rw-r--r--   3 hadoop supergroup          0 2026-10-01 23:48 /nexo/gold/wordcount/_SUCCESS
+-rw-r--r--   3 hadoop supergroup       2267 2026-10-01 23:48 /nexo/gold/wordcount/part-r-00000
+
+# Top 20 términos más frecuentes:
+bash-4.2$ hdfs dfs -cat /nexo/gold/wordcount/part-r-00000 | sort -k2 -nr | head -20
+en            1470
+La            613
+rider         605
+no            577
+estacion      577
+scooter       321
+pinchada      321
+Rueda         321
+#rueda        321
+la            311
+carga         311
+bateria       311
+#bateria      311
+repetido      307
+payment_fail  307
+#pago         307
+saltando      305
+GPS           305
+#gps          305
+viaje         302
+
+# Lectura de negocio: los términos operativos más repetidos muestran los problemas más comunes reportados por los riders: batería, rueda pinchada, fallas de pago (payment_fail) y errores de GPS.
