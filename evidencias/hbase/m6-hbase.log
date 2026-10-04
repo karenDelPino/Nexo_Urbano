@@ -1,0 +1,47 @@
+# M6 - HBase: creación de tabla, inserts y consultas
+# Punto 1 - Crear tabla con familias de columnas id y telemetry bash-4.2$ /opt/hbase-2.5.9/bin/hbase shell
+hbase:001:0> create 'vehiculos', 'id', 'telemetry'
+Created table vehiculos
+Took 2.2138 seconds => Hbase::Table - vehiculos
+
+# Punto 2 - Insertar 50 vehiculos (script hbase_inserts.rb, 200 puts)
+bash-4.2$ /opt/hbase-2.5.9/bin/hbase shell /tmp/hbase_inserts.rb
+[... 200 puts ejecutados, uno por cada campo de cada vehiculo (id:modelo,
+telemetry:soh_bateria, telemetry:ultimo_gps, telemetry:estado) ...]
+hbase:200:0> put 'vehiculos', 'veh050', 'telemetry:estado', 'disponible'
+Took 0.0059 seconds
+hbase:201:0> exit
+
+# Verificacion de carga
+hbase:001:0> count 'vehiculos'
+50 row(s)
+Took 1.3694 seconds
+=> 50
+
+# Punto 3a - GET de un rowkey puntual
+hbase:002:0> get 'vehiculos', 'veh001'
+COLUMN             CELL
+ id:modelo         timestamp=2026-10-02T02:37:42.284, value=Scooter-X200
+ telemetry:estado  timestamp=2026-10-02T02:37:42.476, value=mantenimiento
+ telemetry:soh_bateria  timestamp=2026-10-02T02:37:42.384, value=64
+ telemetry:ultimo_gps   timestamp=2026-10-02T02:37:42.421, value=-34.71378,-58.4123
+1 row(s)
+Took 0.2508 seconds
+
+# Punto 3b - SCAN con filtro por estado = mantenimiento
+hbase:003:0> scan 'vehiculos', {FILTER => "SingleColumnValueFilter('telemetry', 'estado', =, 'binary:mantenimiento')"}
+ROW        COLUMN+CELL
+ veh001    column=id:modelo, value=Scooter-X200 / estado=mantenimiento / bateria=64
+ veh006    column=id:modelo, value=Bici-E50 / estado=mantenimiento / bateria=71
+ veh009    column=id:modelo, value=Bici-E50 / estado=mantenimiento / bateria=94
+ veh013    column=id:modelo, value=Scooter-Pro300 / estado=mantenimiento / bateria=70
+ veh022    column=id:modelo, value=Scooter-X200 / estado=mantenimiento / bateria=91
+ veh025    column=id:modelo, value=Bici-E50 / estado=mantenimiento / bateria=52
+ veh031    column=id:modelo, value=Scooter-X100 / estado=mantenimiento / bateria=78
+ veh034    column=id:modelo, value=Scooter-Pro300 / estado=mantenimiento / bateria=50
+ veh045    column=id:modelo, value=Scooter-X100 / estado=mantenimiento / bateria=31
+ veh046    column=id:modelo, value=Scooter-Pro300 / estado=mantenimiento / bateria=15
+10 row(s)
+Took 0.5157 seconds
+
+# Conclusion: de los 50 vehiculos cargados, 10 estan actualmente en estado "mantenimiento" (20% de la flota).
