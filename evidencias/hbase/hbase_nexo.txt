@@ -1,0 +1,9 @@
+# hbase_nexo.txt - Script de creacion y consulta de tabla vehiculos
+
+create 'vehiculos', 'id', 'telemetry'
+
+# Insercion de 50 vehiculos: ver tools/hbase_inserts.rb (200 puts)
+
+get 'vehiculos', 'veh001'
+
+scan 'vehiculos', {FILTER => "SingleColumnValueFilter('telemetry', 'estado', =, 'binary:mantenimiento')"}

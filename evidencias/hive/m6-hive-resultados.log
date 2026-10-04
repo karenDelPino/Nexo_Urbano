@@ -1,0 +1,51 @@
+# Resultados de las consultas HiveQL - M6
+
+## Carga de datos Silver
+SELECT COUNT(*) FROM silver_viajes;
+-> 2000 filas cargadas en 90 particiones (una por dia, 2026-03-01 a 2026-05-29)
+
+## 3a. Estaciones con mas destinos (top 10)
+ST019   98
+ST001   96
+ST008   94
+ST020   94
+ST015   94
+ST014   93
+ST005   93
+ST022   91
+ST000   88
+ST021   87
+
+## 3b. Viajes de mas de 45 minutos: 15 encontrados
+Todos con duracion exacta de 20000 segundos (333.3 min / ~5.5 horas) -
+posibles outliers del dataset generado para el TP.
+Ejemplos: T0001141 (R0078), T0000912 (R0072), T0001133 (R0050),
+T0001681 (R0007), T0000125 (R0020)...
+
+## 3c. Agrupado por hora x barrio (conteo y duracion media): 288 filas
+Ejemplo hora 00hs:
+  Palermo      11 viajes, 4.2 min prom
+  Chacarita    10 viajes, 3.2 min prom
+  Colegiales   10 viajes, 5.1 min prom
+  Belgrano     10 viajes, 4.2 min prom
+
+Se observan outliers puntuales de duracion media muy alta en algunas
+combinaciones hora/barrio (ej: Microcentro 11hs = 175.9 min prom,
+Chacarita 13hs = 114.1 min prom) - arrastrados por los viajes de
+20000 segundos detectados en el punto 3b.
+
+## Experimento DROP (externa vs interna)
+DROP TABLE bronze_viajes (externa):
+  dfs -ls /nexo/bronze/viajes/
+  -> Found 1 items: viajes_muestra.csv SIGUE EXISTIENDO en HDFS
+
+DROP TABLE silver_viajes (interna):
+  dfs -ls /user/hive/warehouse/silver_viajes/
+  -> No such file or directory: la carpeta completa (90 particiones)
+     fue ELIMINADA junto con la tabla
+
+Conclusion: en una tabla externa, Hive solo administra los metadatos
+(la "foto" de como leer los datos); el archivo fisico es independiente
+y sobrevive al DROP. En una tabla interna, Hive es dueno completo de
+los datos: crearla los genera dentro del warehouse, y borrarla los
+elimina tambien.
