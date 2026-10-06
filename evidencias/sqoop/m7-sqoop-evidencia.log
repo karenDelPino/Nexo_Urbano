@@ -1,0 +1,10 @@
+== ls ==
+Found 2 items
+-rw-r--r--   3 hadoop supergroup          0 2026-10-05 22:22 /nexo/bronze/riders_sqoop/_SUCCESS
+-rw-r--r--   3 hadoop supergroup       8236 2026-10-05 22:22 /nexo/bronze/riders_sqoop/part-m-00000
+== primeras 3 filas ==
+2025-01-12,Buenos Aires,rider0000@nexo.example,Rider_0000,pro,R0000
+2025-03-02,Buenos Aires,rider0001@nexo.example,Rider_0001,pro,R0001
+2025-10-02,Buenos Aires,rider0002@nexo.example,Rider_0002,free,R0002
+== total de filas ==
+120
