@@ -76,15 +76,36 @@ services:
   hadoop:
     image: apache/hadoop:3
     container_name: nexo-hadoop
+    hostname: hadoop
     restart: unless-stopped
     ports:
       - "9870:9870"
       - "8088:8088"
+    environment:
+      CORE-SITE.XML_fs.defaultFS: "hdfs://hadoop:8020"
+      HDFS-SITE.XML_dfs.namenode.rpc-address: "hadoop:8020"
+      HDFS-SITE.XML_dfs.namenode.rpc-bind-host: "0.0.0.0"
+      HDFS-SITE.XML_dfs.replication: "1"
     command: >
-      bash -c "/opt/hadoop/bin/hdfs namenode -format -force && 
-      /opt/hadoop/bin/hdfs --daemon start namenode && 
-      /opt/hadoop/bin/hdfs --daemon start datanode && 
+      bash -c "
+      [ -d /tmp/hadoop-hadoop/dfs/name/current ] || /opt/hadoop/bin/hdfs namenode -format -force;
+      /opt/hadoop/bin/hdfs --daemon start namenode;
+      /opt/hadoop/bin/hdfs --daemon start datanode;
       tail -f /dev/null"
+
+  spark:
+    image: apache/spark:3.5.3
+    container_name: nexo-spark
+    restart: unless-stopped
+    command: tail -f /dev/null
+    ports:
+      - "4040:4040"
+    volumes:
+      - ./05-spark:/opt/spark-apps
+      - ./data:/opt/spark-data:ro
+      - spark_lake:/opt/spark-lake
+
+
 
 volumes:
   mysql_data:
@@ -92,3 +113,4 @@ volumes:
   cassandra_data:
   neo4j_data:
   minio_data:
+  spark_lake:

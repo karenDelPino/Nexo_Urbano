@@ -1,0 +1,42 @@
+﻿Configured Capacity: 1081101176832 (1006.85 GB)
+Present Capacity: 1014685913088 (945.00 GB)
+DFS Remaining: 1014685888512 (945.00 GB)
+DFS Used: 24576 (24 KB)
+DFS Used%: 0.00%
+Replicated Blocks:
+	Under replicated blocks: 0
+	Blocks with corrupt replicas: 0
+	Missing blocks: 0
+	Missing blocks (with replication factor 1): 0
+	Low redundancy blocks with highest priority to recover: 0
+	Pending deletion blocks: 0
+Erasure Coded Block Groups: 
+	Low redundancy block groups: 0
+	Block groups with corrupt internal blocks: 0
+	Missing block groups: 0
+	Low redundancy blocks with highest priority to recover: 0
+	Pending deletion blocks: 0
+
+-------------------------------------------------
+Live datanodes (1):
+
+Name: 172.18.0.7:9866 (hadoop)
+Hostname: hadoop
+Decommission Status : Normal
+Configured Capacity: 1081101176832 (1006.85 GB)
+DFS Used: 24576 (24 KB)
+Non DFS Used: 11422908416 (10.64 GB)
+DFS Remaining: 1014685888512 (945.00 GB)
+DFS Used%: 0.00%
+DFS Remaining%: 93.86%
+Configured Cache Capacity: 0 (0 B)
+Cache Used: 0 (0 B)
+Cache Remaining: 0 (0 B)
+Cache Used%: 100.00%
+Cache Remaining%: 0.00%
+Xceivers: 0
+Last contact: Thu Oct 08 00:27:45 UTC 2026
+Last Block Report: Thu Oct 08 00:19:36 UTC 2026
+Num of Blocks: 0
+
+
