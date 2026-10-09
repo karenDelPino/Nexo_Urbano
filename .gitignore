@@ -1,2 +1,4 @@
 .env
 data/citibike-data.csv
+lakehouse/
+data/viajes.csv

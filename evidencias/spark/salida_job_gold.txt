@@ -1,0 +1,192 @@
+﻿docker : 26/10/08 23:37:27 INFO SparkContext: Running Spark version 3.5.3
+En línea: 1 Carácter: 1
++ docker compose exec -T spark /opt/spark/bin/spark-submit --master "lo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (26/10/08 23:37:...k version 3.5.3:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+26/10/08 23:37:27 INFO SparkContext: OS info Linux, 6.6.87.2-microsoft-standard-WSL2, amd64
+26/10/08 23:37:27 INFO SparkContext: Java version 11.0.24
+26/10/08 23:37:27 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+26/10/08 23:37:27 INFO ResourceUtils: ==============================================================
+26/10/08 23:37:27 INFO ResourceUtils: No custom resources configured for spark.driver.
+26/10/08 23:37:27 INFO ResourceUtils: ==============================================================
+26/10/08 23:37:27 INFO SparkContext: Submitted application: NexoUrbano-Gold
+26/10/08 23:37:27 INFO ResourceProfile: Default ResourceProfile created, executor resources: Map(cores -> name: cores, amount: 1, script: , 
+vendor: , memory -> name: memory, amount: 1024, script: , vendor: , offHeap -> name: offHeap, amount: 0, script: , vendor: ), task resources: 
+Map(cpus -> name: cpus, amount: 1.0)
+26/10/08 23:37:27 INFO ResourceProfile: Limiting resource is cpu
+26/10/08 23:37:27 INFO ResourceProfileManager: Added ResourceProfile id: 0
+26/10/08 23:37:27 INFO SecurityManager: Changing view acls to: spark
+26/10/08 23:37:27 INFO SecurityManager: Changing modify acls to: spark
+26/10/08 23:37:27 INFO SecurityManager: Changing view acls groups to: 
+26/10/08 23:37:27 INFO SecurityManager: Changing modify acls groups to: 
+26/10/08 23:37:27 INFO SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: spark; groups 
+with view permissions: EMPTY; users with modify permissions: spark; groups with modify permissions: EMPTY
+26/10/08 23:37:27 INFO Utils: Successfully started service 'sparkDriver' on port 39323.
+26/10/08 23:37:27 INFO SparkEnv: Registering MapOutputTracker
+26/10/08 23:37:27 INFO SparkEnv: Registering BlockManagerMaster
+26/10/08 23:37:27 INFO BlockManagerMasterEndpoint: Using org.apache.spark.storage.DefaultTopologyMapper for getting topology information
+26/10/08 23:37:27 INFO BlockManagerMasterEndpoint: BlockManagerMasterEndpoint up
+26/10/08 23:37:27 INFO SparkEnv: Registering BlockManagerMasterHeartbeat
+26/10/08 23:37:27 INFO DiskBlockManager: Created local directory at /tmp/blockmgr-73d88456-52cf-4391-b281-91cc1ee6d174
+26/10/08 23:37:27 INFO MemoryStore: MemoryStore started with capacity 1048.8 MiB
+26/10/08 23:37:27 INFO SparkEnv: Registering OutputCommitCoordinator
+26/10/08 23:37:27 INFO JettyUtils: Start Jetty 0.0.0.0:4040 for SparkUI
+26/10/08 23:37:28 INFO Utils: Successfully started service 'SparkUI' on port 4040.
+26/10/08 23:37:28 INFO Executor: Starting executor ID driver on host 3a9e3e43cfcb
+26/10/08 23:37:28 INFO Executor: OS info Linux, 6.6.87.2-microsoft-standard-WSL2, amd64
+26/10/08 23:37:28 INFO Executor: Java version 11.0.24
+26/10/08 23:37:28 INFO Executor: Starting executor with user classpath (userClassPathFirst = false): ''
+26/10/08 23:37:28 INFO Executor: Created or updated repl class loader org.apache.spark.util.MutableURLClassLoader@4e44b558 for default.
+26/10/08 23:37:28 INFO Utils: Successfully started service 'org.apache.spark.network.netty.NettyBlockTransferService' on port 37711.
+26/10/08 23:37:28 INFO NettyBlockTransferService: Server created on 3a9e3e43cfcb:37711
+26/10/08 23:37:28 INFO BlockManager: Using org.apache.spark.storage.RandomBlockReplicationPolicy for block replication policy
+26/10/08 23:37:28 INFO BlockManagerMaster: Registering BlockManager BlockManagerId(driver, 3a9e3e43cfcb, 37711, None)
+26/10/08 23:37:28 INFO BlockManagerMasterEndpoint: Registering block manager 3a9e3e43cfcb:37711 with 1048.8 MiB RAM, BlockManagerId(driver, 
+3a9e3e43cfcb, 37711, None)
+26/10/08 23:37:28 INFO BlockManagerMaster: Registered BlockManager BlockManagerId(driver, 3a9e3e43cfcb, 37711, None)
+26/10/08 23:37:28 INFO BlockManager: Initialized BlockManager: BlockManagerId(driver, 3a9e3e43cfcb, 37711, None)
+Filas en Bronze: 250000
+root
+ |-- ride_id: string (nullable = true)
+ |-- ts_start: timestamp (nullable = true)
+ |-- ts_end: timestamp (nullable = true)
+ |-- duration_s: integer (nullable = true)
+ |-- rider_id: string (nullable = true)
+ |-- vehicle_id: string (nullable = true)
+ |-- station_start: string (nullable = true)
+ |-- station_end: string (nullable = true)
+ |-- barrio_start: string (nullable = true)
+ |-- barrio_end: string (nullable = true)
+ |-- lat_start: double (nullable = true)
+ |-- lon_start: double (nullable = true)
+ |-- lat_end: double (nullable = true)
+ |-- lon_end: double (nullable = true)
+ |-- km: double (nullable = true)
+ |-- fare_ars: double (nullable = true)
+ |-- clima_codigo: integer (nullable = true)
+
+Rechazados por duracion_fuera_de_rango: 5045
+Rechazados por ids_nulos: 0
+Rechazados por km_invalido: 11
+Rechazados por fin_antes_que_inicio: 0
+Filas en Silver: 244944 (rechazadas en total: 5056)
++-------+------------------+-----------------+--------------------+
+|summary|                km|     duracion_min|             vel_kmh|
++-------+------------------+-----------------+--------------------+
+|  count|            244944|           244944|              244944|
+|   mean| 4.079878796786227|5.200505217519097|   76.13741921668841|
+| stddev|2.5316855818589716|4.114143097273595|   81.70209414757412|
+|    min|             0.001|             0.75|0.005070422535211268|
+|    max|               8.5|             83.1|              679.28|
++-------+------------------+-----------------+--------------------+
+
+Silver guardado en /opt/spark-lake/silver/viajes
+Viajes con velocidad > 25 km/h: 175783 (71.8%)
+Viajes con velocidad > 40 km/h: 143532 (58.6%)
+Viajes con velocidad > 60 km/h: 108643 (44.4%)
++-------------------+-------------------+
+|min(ts_start)      |max(ts_start)      |
++-------------------+-------------------+
+|2026-03-01 00:00:00|2026-05-30 00:00:00|
++-------------------+-------------------+
+
++------------+-----+
+|clima_codigo|count|
++------------+-----+
+|           0|81745|
+|           1|27272|
+|           2|27188|
+|           3|26863|
+|          61|27394|
+|          63|27432|
+|          80|27050|
++------------+-----+
+
+Riders cargados: 120
+Viajes con rider_id inexistente en riders.csv: 0
++----------+------+-------+-------+------------+-----------------+
+|     fecha|viajes|minutos|     km|ingresos_ars|pct_clima_adverso|
++----------+------+-------+-------+------------+-----------------+
+|2026-02-28|   312| 1738.1| 1254.1|   111623.08|             34.9|
+|2026-03-01|  2726|14502.5|10915.4|   959247.36|             32.8|
+|2026-03-02|  2695|14041.3|10828.1|   943593.65|             33.8|
+|2026-03-03|  2763|14742.4|11142.4|   976327.65|             34.1|
+|2026-03-04|  2681|13993.3|10983.8|   947689.56|             32.7|
+|2026-03-05|  2695|14116.4|11116.9|   956718.92|             34.0|
+|2026-03-06|  2722|14244.6|11295.5|   968716.53|             33.2|
+|2026-03-07|  2703|14391.0|10797.9|   950365.94|             33.8|
+|2026-03-08|  2715|14617.2|11030.2|   965367.46|             32.5|
+|2026-03-09|  2696|13950.0|11172.1|   955515.25|             32.7|
++----------+------+-------+-------+------------+-----------------+
+only showing top 10 rows
+
++-------------+------+
+|station_start|viajes|
++-------------+------+
+|        ST019| 10357|
+|        ST020| 10340|
+|        ST009| 10337|
+|        ST012| 10320|
+|        ST003| 10312|
+|        ST007| 10298|
+|        ST017| 10277|
+|        ST005| 10249|
+|        ST010| 10233|
+|        ST021| 10225|
++-------------+------+
+
++----+------+-------------+------------------+
+|plan|viajes| ingresos_ars|duracion_media_min|
++----+------+-------------+------------------+
+| pro| 89391|3.154479481E7|               5.2|
+|free| 81861|2.883142149E7|               5.2|
+|plus| 73692|2.594346434E7|               5.2|
++----+------+-------------+------------------+
+
+== Parsed Logical Plan ==
+'Aggregate ['station_start], ['station_start, count(1) AS count#9643L]
++- Filter (fecha#9596 >= cast(2026-05-01 as date))
+   +- Relation [ride_id#9575,ts_start#9576,ts_end#9577,duration_s#9578,rider_id#9579,vehicle_id#9580,station_start#9581,station_end#9582,barrio_start#9583,barrio_end#9584,lat_start#9585,lon_start#9586,lat_end#9587,lon_end#9588,km#9589,fare_ars#9590,clima_codigo#9591,ts_local#9592,hora#9593,duracion_min#9594,vel_kmh#9595,fecha#9596] parquet
+
+== Analyzed Logical Plan ==
+station_start: string, count: bigint
+Aggregate [station_start#9581], [station_start#9581, count(1) AS count#9643L]
++- Filter (fecha#9596 >= cast(2026-05-01 as date))
+   +- Relation [ride_id#9575,ts_start#9576,ts_end#9577,duration_s#9578,rider_id#9579,vehicle_id#9580,station_start#9581,station_end#9582,barrio_start#9583,barrio_end#9584,lat_start#9585,lon_start#9586,lat_end#9587,lon_end#9588,km#9589,fare_ars#9590,clima_codigo#9591,ts_local#9592,hora#9593,duracion_min#9594,vel_kmh#9595,fecha#9596] parquet
+
+== Optimized Logical Plan ==
+Aggregate [station_start#9581], [station_start#9581, count(1) AS count#9643L]
++- Project [station_start#9581]
+   +- Filter (isnotnull(fecha#9596) AND (fecha#9596 >= 2026-05-01))
+      +- Relation [ride_id#9575,ts_start#9576,ts_end#9577,duration_s#9578,rider_id#9579,vehicle_id#9580,station_start#9581,station_end#9582,barrio_start#9583,barrio_end#9584,lat_start#9585,lon_start#9586,lat_end#9587,lon_end#9588,km#9589,fare_ars#9590,clima_codigo#9591,ts_local#9592,hora#9593,duracion_min#9594,vel_kmh#9595,fecha#9596] parquet
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[station_start#9581], functions=[count(1)], output=[station_start#9581, count#9643L])
+   +- Exchange hashpartitioning(station_start#9581, 200), ENSURE_REQUIREMENTS, [plan_id=1860]
+      +- HashAggregate(keys=[station_start#9581], functions=[partial_count(1)], output=[station_start#9581, count#9647L])
+         +- Project [station_start#9581]
+            +- FileScan parquet [station_start#9581,fecha#9596] Batched: true, DataFilters: [], Format: Parquet, Location: InMemoryFileIndex(1 paths)[file:/opt/spark-lake/silver/viajes], PartitionFilters: [isnotnull(fecha#9596), (fecha#9596 >= 2026-05-01)], PushedFilters: [], ReadSchema: struct<station_start:string>
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [viajes#8403L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(viajes#8403L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=1906]
+      +- HashAggregate(keys=[plan#5350], functions=[count(1), sum(fare_ars#32), avg(duracion_min#170)])
+         +- Exchange hashpartitioning(plan#5350, 200), ENSURE_REQUIREMENTS, [plan_id=1903]
+            +- HashAggregate(keys=[plan#5350], functions=[partial_count(1), partial_sum(fare_ars#32), partial_avg(duracion_min#170)])
+               +- Project [fare_ars#32, duracion_min#170, plan#5350]
+                  +- BroadcastHashJoin [rider_id#21], [rider_id#5347], LeftOuter, BuildRight, false
+                     :- InMemoryTableScan [rider_id#21, fare_ars#32, duracion_min#170]
+                     :     +- InMemoryRelation [ride_id#17, ts_start#73, ts_end#92, duration_s#20, rider_id#21, vehicle_id#22, station_start#23, station_end#24, barrio_start#25, barrio_end#26, lat_start#27, lon_start#28, lat_end#29, lon_end#30, km#31, fare_ars#32, clima_codigo#33, ts_local#110, fecha#129, hora#149, duracion_min#170, vel_kmh#192], StorageLevel(disk, memory, deserialized, 1 replicas)
+                     :           +- *(1) Project [ride_id#17, ts_start#18, ts_end#19, duration_s#20, rider_id#21, vehicle_id#22, station_start#23, station_end#24, barrio_start#25, barrio_end#26, lat_start#27, lon_start#28, lat_end#29, lon_end#30, km#31, fare_ars#32, clima_codigo#33, ts_local#110, cast(ts_local#110 as date) AS fecha#129, hour(ts_local#110, Some(UTC)) AS hora#149, (cast(duration_s#20 as double) / 60.0) AS duracion_min#170, (km#31 / (cast(duration_s#20 as double) / 3600.0)) AS vel_kmh#192]
+                     :              +- *(1) Project [ride_id#17, ts_start#18, ts_end#19, duration_s#20, rider_id#21, vehicle_id#22, station_start#23, station_end#24, barrio_start#25, barrio_end#26, lat_start#27, lon_start#28, lat_end#29, lon_end#30, km#31, fare_ars#32, clima_codigo#33, from_utc_timestamp(ts_start#18, America/Argentina/Buenos_Aires) AS ts_local#110]
+                     :                 +- *(1) Filter NOT coalesce(((((isnull(duration_s#20) OR ((duration_s#20 < 30) OR (duration_s#20 > 14400))) OR ((isnull(rider_id#21) OR isnull(vehicle_id#22)) OR isnull(station_start#23))) OR (isnull(km#31) OR (km#31 <= 0.0))) OR (ts_end#19 <= ts_start#18)), true)
+                     :                    +- FileScan csv [ride_id#17,ts_start#18,ts_end#19,duration_s#20,rider_id#21,vehicle_id#22,station_start#23,station_end#24,barrio_start#25,barrio_end#26,lat_start#27,lon_start#28,lat_end#29,lon_end#30,km#31,fare_ars#32,clima_codigo#33] Batched: false, DataFilters: [NOT coalesce(((((isnull(duration_s#20) OR ((duration_s#20 < 30) OR (duration_s#20 > 14400))) OR ..., Format: CSV, Location: InMemoryFileIndex(1 paths)[file:/opt/spark-data/viajes.csv], PartitionFilters: [], PushedFilters: [], ReadSchema: struct<ride_id:string,ts_start:timestamp,ts_end:timestamp,duration_s:int,rider_id:string,vehicle_...
+                     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, string, false]),false), [plan_id=1898]
+                        +- Filter isnotnull(rider_id#5347)
+                           +- FileScan csv [rider_id#5347,plan#5350] Batched: false, DataFilters: [isnotnull(rider_id#5347)], Format: CSV, Location: InMemoryFileIndex(1 paths)[file:/opt/spark-data/riders.csv], PartitionFilters: [], PushedFilters: [IsNotNull(rider_id)], ReadSchema: struct<rider_id:string,plan:string>
+
+
