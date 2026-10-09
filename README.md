@@ -76,3 +76,17 @@ abfss://bronze@nexourbanodata2026.dfs.core.windows.net/viajes/2026/09/16/viajes.
 **Clima adverso:** `clima_codigo >= 51` (61, 63 y 80; parecen códigos WMO de lluvia, es una inferencia). Resultado: 33,4% de los viajes. El código viene en el CSV; el join con Open-Meteo (M3) queda pendiente.
 
 **Límite de los datos:** el generador sortea clima, km, duración y plan de forma independiente, por eso el % de clima adverso es casi igual cada día y los planes no se diferencian.
+
+
+
+### M9 · Spark Streaming: Alertas Operacionales
+
+**Caso de Uso y Reglas de Negocio**
+El sistema procesa telemetría en vivo para detectar monopatines con batería baja (`battery_low`) o fallos de pago recurrentes (`payment_fail`) agrupados en ventanas móviles de 2 minutos (con un slide de 30 segundos). Esto permite alertar a operaciones sobre posibles fraudes de "viaje fantasma" o desconexiones masivas de la flota. Los resultados se emiten por consola y se persisten simultáneamente en formato Parquet (`gold_alerts`) para auditoría.
+
+**Gestión de Latencia (Watermark) y Eventos Descartados**
+Se configuró un *watermark* de 1 minuto para tolerar el retraso natural de la red móvil. Si el reloj interno del streaming avanza y fija su límite mínimo (ej. 12:01:00), cualquier monopatín que recupere la señal y envíe un evento tardío (ej. un registro a las 12:00:33) es descartado automáticamente por el sistema. Esto se validó en las pruebas para asegurar que no se recalculen ventanas ya cerradas.
+
+**Hechos Mínimos Verificables (HMV)**
+ **Demostración:** El video de 30 segundos mostrando la reacción en vivo de la consola y la creación de las ventanas se encuentra en: `evidencias/spark/evidencia_m9_alertas.mp4`
+**Código:** El script de ejecución está en `job_alerts.py`
