@@ -107,3 +107,17 @@ En una base de datos relacional, modelar este catálogo requeriría al menos 3 t
 **Hechos Mínimos Verificables (HMV)**
 **Script CRUD:** El código de creación, actualización y borrado está en `06-mongodb/crud.js`.
 **Métricas de Índice:** Al medir con `explain("executionStats")`, la búsqueda sin índice examinó los 300 documentos del catálogo. Tras crear el índice compuesto, la misma consulta fue directa y examinó solo 65 documentos, confirmando la optimización estructural.
+
+### M11 · MongoDB: Agregaciones (Analítica Comercial)
+
+**Pipeline de Analítica**
+Se desarrolló un pipeline de agregación robusto para generar reportes comerciales automatizados. El flujo procesa datos transaccionales incluyendo:
+- `$match`: Filtrado de ventas correspondientes al último trimestre.
+- `$lookup`: Cruce con la colección `productos` para integrar nombres y categorías.
+- `$facet`: Procesamiento multifase en paralelo para obtener el total facturado por categoría, las ventas agrupadas por mes cronológico, y el Top 5 de productos por volumen de ingresos.
+- `$project`: Formateo y limpieza del documento final.
+
+**Hechos Mínimos Verificables (HMV)**
+**Script Pipeline:** El código con el generador de datos y la agregación se encuentra en `06-mongodb/pipeline.js`.
+**Reporte Exportado:** El resultado analítico final está guardado en `09-producto/ventas_agg.json`.
+**Bonus Geoespacial:** La estructura de ventas generada incluye el nodo `ubicacion_tienda` con formato oficial `GeoJSON` (Point) y coordenadas geolocalizadas, preparando la colección para índices `2dsphere`(búsquedas por mapa/radio).

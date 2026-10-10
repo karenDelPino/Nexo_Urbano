@@ -1,0 +1,62 @@
+  nexo_db> {
+  "Total_por_Categoria": [
+    {
+      "_id": "seguro",
+      "totalFacturado": 118493
+    },
+    {
+      "_id": "pase",
+      "totalFacturado": 319563
+    },
+    {
+      "_id": "casco",
+      "totalFacturado": 276719
+    }
+  ],
+  "Ventas_por_Mes": [
+    {
+      "_id": 7,
+      "totalFacturado": 163564
+    },
+    {
+      "_id": 8,
+      "totalFacturado": 222641
+    },
+    {
+      "_id": 9,
+      "totalFacturado": 191981
+    },
+    {
+      "_id": 10,
+      "totalFacturado": 136589
+    }
+  ],
+  "Top_5_Productos": [
+    {
+      "_id": "PRD-050",
+      "nombre": "Producto Comercial 50",
+      "ingresos": 141146
+    },
+    {
+      "_id": "PRD-002",
+      "nombre": "Producto Comercial 2",
+      "ingresos": 135573
+    },
+    {
+      "_id": "PRD-010",
+      "nombre": "Producto Comercial 10",
+      "ingresos": 118493
+    },
+    {
+      "_id": "PRD-003",
+      "nombre": "Producto Comercial 3",
+      "ingresos": 117614
+    },
+    {
+      "_id": "PRD-100",
+      "nombre": "Producto Comercial 100",
+      "ingresos": 101384
+    }
+  ],
+  "reporte": "Analitica Trimestral"
+}
