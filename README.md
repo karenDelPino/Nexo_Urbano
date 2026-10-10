@@ -98,3 +98,12 @@ Se configuró un *watermark* de 1 minuto para tolerar el retraso natural de la r
 **Hechos Mínimos Verificables (HMV)**
  **Demostración:** El video de 30 segundos mostrando la reacción en vivo de la consola y la creación de las ventanas se encuentra en: `evidencias/spark/evidencia_m9_alertas.mp4`
 **Código:** El script de ejecución está en `job_alerts.py`
+
+### M10 · MongoDB: Catálogo Comercial (Documentos y CRUD)
+
+**Comparativa SQL vs. Modelo Documental (MongoDB):**
+En una base de datos relacional, modelar este catálogo requeriría al menos 3 tablas (`Productos`, `Precios_Ciudad` y `Producto_Tags`) unidas por 3 costosos `JOINs` para averiguar el precio de un casco "premium" en Mendoza. En MongoDB, al usar un modelo de documentos anidados, toda la información de stock, tags y precios vive dentro del mismo objeto JSON. Esto elimina la necesidad de uniones relacionales, logrando lecturas instantáneas mediante índices compuestos (`categoria` + `detalles.tags`), lo que simplifica drásticamente el código del sistema y acelera la respuesta para el e-commerce de la flota.
+
+**Hechos Mínimos Verificables (HMV)**
+**Script CRUD:** El código de creación, actualización y borrado está en `06-mongodb/crud.js`.
+**Métricas de Índice:** Al medir con `explain("executionStats")`, la búsqueda sin índice examinó los 300 documentos del catálogo. Tras crear el índice compuesto, la misma consulta fue directa y examinó solo 65 documentos, confirmando la optimización estructural.
