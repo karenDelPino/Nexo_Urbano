@@ -121,3 +121,20 @@ Se desarrolló un pipeline de agregación robusto para generar reportes comercia
 **Script Pipeline:** El código con el generador de datos y la agregación se encuentra en `06-mongodb/pipeline.js`.
 **Reporte Exportado:** El resultado analítico final está guardado en `09-producto/ventas_agg.json`.
 **Bonus Geoespacial:** La estructura de ventas generada incluye el nodo `ubicacion_tienda` con formato oficial `GeoJSON` (Point) y coordenadas geolocalizadas, preparando la colección para índices `2dsphere`(búsquedas por mapa/radio).
+
+### M13 · Neo4j: Grafo Social y Recomendaciones
+
+**Modelo de Datos y Generación**
+Se diseñó e implementó un modelo de grafos para representar la red social de la plataforma NexoUrbano. Mediante un script Cypher automatizado, se generaron 85 nodos de usuarios (`Rider`), además de entidades físicas (`Estacion`) y lógicas (`Interes`). Las conexiones se crearon de forma probabilística incluyendo relaciones del tipo `AMIGO_DE`, `VIAJO_CON`, `SALE_DE` y `LE_GUSTA`.
+
+**Consultas Analíticas y Prevención de Fraude**
+Se desarrollaron queries orientadas a la recomendación y seguridad:
+- Búsqueda de amigos en común para sugerir nuevas amistades.
+- Algoritmo de "Camino más corto" (Shortest Path) entre usuarios de la red.
+- Motor de recomendación de viajes compartidos (riders que inician viajes en la misma estación pero no son amigos).
+- **Bonus (Patrón de Fraude):** Detección de comportamientos anómalos, rastreando a 3 riders retirando vehículos en la misma estación con menos de 2 minutos de diferencia.
+
+**Hechos Mínimos Verificables (HMV)**
+**Script de Creación:** El código generador del grafo se encuentra en `08-neo4j/grafo.cypher`.
+**Resultados Cypher:** Las salidas en formato texto de las 4 consultas analíticas requeridas están documentadas en `08-neo4j/resultados_queries.md`.
+**Capturas del Grafo:** La representación visual de la red completa y el mapa del camino más corto se encuentran en la carpeta `evidencias/neo4j/`.
