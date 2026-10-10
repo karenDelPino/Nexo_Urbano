@@ -122,6 +122,22 @@ Se desarrolló un pipeline de agregación robusto para generar reportes comercia
 **Reporte Exportado:** El resultado analítico final está guardado en `09-producto/ventas_agg.json`.
 **Bonus Geoespacial:** La estructura de ventas generada incluye el nodo `ubicacion_tienda` con formato oficial `GeoJSON` (Point) y coordenadas geolocalizadas, preparando la colección para índices `2dsphere`(búsquedas por mapa/radio).
 
+### M12 · Cassandra: Series Temporales de Sensores (IoT)
+**Modelo de Series Temporales**
+Se diseñó un modelo de datos orientado a consultas de alto rendimiento para el monitoreo en vivo de la flota, procesando telemetría de vehículos mediante:
+
+**Partition Key (vehicle_id):** Agrupa todas las lecturas de un mismo vehículo de forma contigua en el clúster para evitar escaneos de tablas completas.
+
+**Clustering Key (ts DESC):** Ordena los registros cronológicamente de forma descendente, permitiendo consultas ultrarrápidas de las últimas métricas de cada e-scooter o e-bike.
+
+**Estrategia de Consistencia:** Definición de niveles (ONE para telemetría en tiempo real priorizando velocidad y disponibilidad, y QUORUM para procesos críticos donde la exactitud del dato es prioritaria).
+
+**Hechos Mínimos Verificables (HMV)**
+
+**Esquema y Consultas CQL:** El diseño del keyspace, la estructura de la tabla y las queries analíticas se encuentran documentados en 07-cassandra/schema.cql y 07-cassandra/queries.cql.
+**Carga de Datos:** Se insertaron con éxito más de 5 000 lecturas sintéticas de sensores en el entorno de desarrollo.
+**Validación y ADR:** Se documentó formalmente en ADR/007-cassandra.md la arquitectura del clúster, la justificación de RF y los niveles de consistencia.
+
 ### M13 · Neo4j: Grafo Social y Recomendaciones
 
 **Modelo de Datos y Generación**
