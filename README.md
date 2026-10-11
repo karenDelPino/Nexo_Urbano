@@ -50,6 +50,8 @@ abfss://bronze@nexourbanodata2026.dfs.core.windows.net/viajes/2026/09/16/viajes.
 
 ## M8 - Spark batch (Bronze → Silver → Gold)
 
+## M8 - Spark batch (Bronze → Silver → Gold)
+
 **Script:** `05-spark/batch/job_gold.py`
 
 **Cómo correrlo** (con Docker Desktop abierto):
@@ -58,11 +60,11 @@ abfss://bronze@nexourbanodata2026.dfs.core.windows.net/viajes/2026/09/16/viajes.
     docker compose exec -u root spark chown -R spark /opt/spark-lake
     docker compose exec spark /opt/spark/bin/spark-submit --master "local[*]" --driver-memory 2g /opt/spark-apps/batch/job_gold.py
 
-El `chown` se corre una sola vez: le da permisos al usuario `spark` para escribir en el volumen `spark_lake`. Silver y Gold se guardan en ese volumen de Docker y no están en el repo. Para verlos: `docker compose exec spark ls /opt/spark-lake/gold`.
+El `chown` le da permisos al usuario `spark` para escribir en el volumen `spark_lake`. Se corre una vez, y de nuevo si se borra el volumen. Silver y Gold se guardan en ese volumen de Docker y no están en el repo. Para verlos: `docker compose exec spark ls /opt/spark-lake/gold`.
 
 **Volumen:** 250.000 viajes (seed 402). 
 
-**Calidad de dato (Bronze → Silver):** 244.944 de 250.000 filas pasan (98%). Se rechazaron 5.045 por duración fuera del rango 30 s – 4 h y 11 por km inválido. Las reglas de ids nulos y fin antes que inicio no rechazaron ninguna.
+**Calidad de dato (Bronze → Silver):** 244.944 de 250.000 filas pasan (98%). Se rechazaron 5.045 por duración fuera del rango 30 s – 4 h y 11 por km inválido. Las reglas de ids nulos y de fin antes que inicio no rechazaron ninguna.
 
 **Zona horaria:** `ts_start` viene en UTC y se convierte a hora de Buenos Aires antes de agrupar por fecha y hora. Por eso el primer día (28/02) tiene solo 312 viajes: los datos arrancan el 01/03 00:00 UTC, que son las 21:00 locales del día anterior.
 
@@ -80,10 +82,10 @@ El `chown` se corre una sola vez: le da permisos al usuario `spark` para escribi
 **Explain:** ver `evidencias/spark/salida_job_gold.txt` y el análisis en `evidencias/spark/explain_notas.md`. Se observan partition pruning (`PartitionFilters` sobre `fecha`), column pruning (`ReadSchema` con una sola columna) y broadcast join.
 
 **Observaciones sobre los datos:**
-- El 71,8% de los viajes supera los 25 km/h y el 44,4% los 60 km/h, algo irreal para monopatines. No se filtró por velocidad porque eliminaría más de la mitad del dataset. Una hipótesis es que el generador sortea km y duración por separado, pero no se verificó.
-- El clima, los km, la duración y el plan se generan de forma independiente. Por eso el % de clima adverso es casi igual cada día y los planes no se diferencian entre sí.
+- La velocidad calculada es irreal para monopatines: el 71,8% de los viajes supera los 25 km/h, el 58,6% los 40 y el 44,4% los 60, con un máximo de 679 km/h. No se filtró por velocidad porque con un umbral de 25 km/h se descartaría más del 70% del dataset. Una hipótesis es que el generador sortea km y duración por separado, pero no se verificó.
+- El generador sortea el clima, los km, la duración y el plan de forma independiente. Por eso el % de clima adverso es casi igual cada día y los planes no se diferencian entre sí.
 
-**Límite de los datos:** el generador sortea clima, km, duración y plan de forma independiente, por eso el % de clima adverso es casi igual cada día y los planes no se diferencian.
+**Pendiente:** join con el clima de Open-Meteo (M3), que depende de la tabla de otra integrante.
 
 
 
