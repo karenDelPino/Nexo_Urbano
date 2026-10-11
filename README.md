@@ -124,21 +124,62 @@ Se desarrolló un pipeline de agregación robusto para generar reportes comercia
 **Reporte Exportado:** El resultado analítico final está guardado en `09-producto/ventas_agg.json`.
 **Bonus Geoespacial:** La estructura de ventas generada incluye el nodo `ubicacion_tienda` con formato oficial `GeoJSON` (Point) y coordenadas geolocalizadas, preparando la colección para índices `2dsphere`(búsquedas por mapa/radio).
 
-### M12 · Cassandra: Series Temporales de Sensores (IoT)
-**Modelo de Series Temporales**
-Se diseñó un modelo de datos orientado a consultas de alto rendimiento para el monitoreo en vivo de la flota, procesando telemetría de vehículos mediante:
+## M12 - Cassandra (series temporales de sensores)
 
-**Partition Key (vehicle_id):** Agrupa todas las lecturas de un mismo vehículo de forma contigua en el clúster para evitar escaneos de tablas completas.
+**Archivos:** `07-cassandra/schema.cql` (keyspace y tabla), `carga.cql` (carga del CSV) y `queries.cql` (consultas). La evidencia está en `evidencias/cassandra/`.
 
-**Clustering Key (ts DESC):** Ordena los registros cronológicamente de forma descendente, permitiendo consultas ultrarrápidas de las últimas métricas de cada e-scooter o e-bike.
+**Modelo:** keyspace `nexo` con RF=1, porque el sandbox tiene un solo nodo (en producción se usaría RF ≥ 3). La tabla `lecturas_vehiculo` tiene `vehicle_id` como partition key y `ts` como clustering en orden descendente, porque todas las consultas empiezan por un vehículo y piden primero lo más nuevo.
 
-**Estrategia de Consistencia:** Definición de niveles (ONE para telemetría en tiempo real priorizando velocidad y disponibilidad, y QUORUM para procesos críticos donde la exactitud del dato es prioritaria).
+**Datos:** `data/lecturas_sensores.csv`, con 6.000 lecturas de 80 vehículos (el enunciado pide al menos 5.000).
 
-**Hechos Mínimos Verificables (HMV)**
+### Cómo cargarlo
 
-**Esquema y Consultas CQL:** El diseño del keyspace, la estructura de la tabla y las queries analíticas se encuentran documentados en 07-cassandra/schema.cql y 07-cassandra/queries.cql.
-**Carga de Datos:** Se insertaron con éxito más de 5 000 lecturas sintéticas de sensores en el entorno de desarrollo.
-**Validación y ADR:** Se documentó formalmente en ADR/007-cassandra.md la arquitectura del clúster, la justificación de RF y los niveles de consistencia.
+Con Docker Desktop abierto.
+
+**Paso 1.** Levantar Cassandra y esperar a que esté lista. Tarda uno o dos minutos, y tiene que aparecer una línea que empiece con `UN`:
+
+docker compose up -d cassandra
+docker exec nexo-cassandra nodetool status
+
+**Paso 2.** Crear keyspace y tabla:
+
+cat 07-cassandra/schema.cql | docker exec -i nexo-cassandra cqlsh
+
+**Paso 3.** Copiar el CSV dentro del contenedor, porque Cassandra no ve la carpeta `data`:
+
+# Git Bash
+MSYS_NO_PATHCONV=1 docker cp data/lecturas_sensores.csv nexo-cassandra:/tmp/lecturas_sensores.csv
+
+# PowerShell
+docker cp data\lecturas_sensores.csv nexo-cassandra:/tmp/lecturas_sensores.csv
+
+**Paso 4.** Cargar. Si la tabla ya tenía datos de una carga anterior, vaciarla antes con `docker exec nexo-cassandra cqlsh -e "TRUNCATE nexo.lecturas_vehiculo"`:
+
+cat 07-cassandra/carga.cql | docker exec -i nexo-cassandra cqlsh
+
+**Paso 5.** Verificar. Tiene que dar 6000 en total y 88 para V0073, que son las filas que tiene el CSV:
+
+docker exec nexo-cassandra cqlsh -e "SELECT COUNT(*) FROM nexo.lecturas_vehiculo"
+docker exec nexo-cassandra cqlsh -e "SELECT COUNT(*) FROM nexo.lecturas_vehiculo WHERE vehicle_id = 'V0073'"
+
+### Si el conteo da 80
+
+El CSV trae las fechas como `2026-05-01T00:00:05+00:00`. Sin el formato correcto, `COPY` no las interpreta bien: todas las lecturas de un vehículo quedan con la misma hora y Cassandra las pisa sin avisar, aunque el `COPY` diga `6000 rows imported`. Por eso `carga.cql` incluye `DATETIMEFORMAT`. Si te pasa, actualizá el repo con `git pull`, vaciá la tabla con `TRUNCATE` y recargá.
+
+### Consultas y evidencia
+
+cat 07-cassandra/queries.cql | docker exec -i nexo-cassandra cqlsh
+
+- **Consulta 1:** las últimas 20 lecturas de un vehículo.
+- **Consulta 2:** un rango horario de un vehículo.
+- **Consulta 3:** no filtra por `vehicle_id`, y Cassandra la rechaza con un `InvalidRequest` que menciona `ALLOW FILTERING`. Tendría que recorrer todas las particiones, y ese es el punto del módulo.
+
+**Archivos de evidencia** (`evidencias/cassandra/`):
+- `salida_queries.txt`: la salida de las tres consultas, con el error de la tercera.
+- `conteo.txt` y `describe_tabla.txt`: el conteo de filas y la estructura de la tabla.
+- `cassandra_ultima_lectura.txt`: la última lectura de cada vehículo. Sale de `PER PARTITION LIMIT 1`, que devuelve la primera fila de cada partición. Como el clustering es `ts DESC`, esa primera fila es la más nueva.
+
+Las decisiones de consistencia (ONE vs QUORUM) están en `ADR/007-cassandra.md`.
 
 ### M13 · Neo4j: Grafo Social y Recomendaciones
 
