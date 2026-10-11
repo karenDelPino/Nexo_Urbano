@@ -56,9 +56,9 @@ abfss://bronze@nexourbanodata2026.dfs.core.windows.net/viajes/2026/09/16/viajes.
 
 **Cómo correrlo** (con Docker Desktop abierto):
 
-    docker compose up -d spark
-    docker compose exec -u root spark chown -R spark /opt/spark-lake
-    docker compose exec spark /opt/spark/bin/spark-submit --master "local[*]" --driver-memory 2g /opt/spark-apps/batch/job_gold.py
+docker compose up -d spark
+docker compose exec -u root spark chown -R spark /opt/spark-lake
+docker compose exec spark /opt/spark/bin/spark-submit --master "local[*]" --driver-memory 2g /opt/spark-apps/batch/job_gold.py
 
 El `chown` le da permisos al usuario `spark` para escribir en el volumen `spark_lake`. Se corre una vez, y de nuevo si se borra el volumen. Silver y Gold se guardan en ese volumen de Docker y no están en el repo. Para verlos: `docker compose exec spark ls /opt/spark-lake/gold`.
 
