@@ -57,6 +57,7 @@ services:
     environment:
       NEO4J_AUTH: neo4j/nexo-urban-2026
       NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_apoc_import_file_enabled: "true"
     volumes:
       - neo4j_data:/data
 

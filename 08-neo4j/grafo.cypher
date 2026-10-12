@@ -1,28 +1,33 @@
 // 1. Limpiar la base por si había datos previos
 MATCH (n) DETACH DELETE n;
 
-// 2. Crear Estaciones locales e Intereses
-CREATE (:Estacion {id: "E1", nombre: "Plaza Independencia"}),
-       (:Estacion {id: "E2", nombre: "Parque San Martin"}),
-       (:Estacion {id: "E3", nombre: "Plaza Godoy Cruz"});
+// 2. Cargar entidades físicas (Estaciones) reales desde el CSV de NexoUrbano
+LOAD CSV WITH HEADERS FROM 'file:///estaciones.csv' AS row
+MERGE (e:Estacion {station_id: row.station_id})
+SET e.nombre = row.nombre, e.barrio = row.barrio;
 
-CREATE (:Interes {id: "I1", nombre: "Movilidad Sustentable"}),
-       (:Interes {id: "I2", nombre: "Tecnologia"}),
-       (:Interes {id: "I3", nombre: "Data Science"});
+// 3. Cargar usuarios (Riders) reales desde el CSV
+LOAD CSV WITH HEADERS FROM 'file:///riders.csv' AS row
+MERGE (r:Rider {rider_id: row.rider_id})
+SET r.nombre = row.nombre, r.plan = row.plan;
 
-// 3. Generar 85 Riders con un UNWIND
-UNWIND range(1, 85) AS i
-CREATE (:Rider {id: "R" + i, nombre: "Rider " + i});
+// 4. Generar el historial real de extracciones (SALE_DE)
+// Limitamos la muestra a 15.000 viajes para no saturar la RAM de Docker local
+LOAD CSV WITH HEADERS FROM 'file:///viajes.csv' AS row
+WITH row LIMIT 15000
+MATCH (r:Rider {rider_id: row.rider_id})
+MATCH (e:Estacion {station_id: row.station_start})
+MERGE (r)-[:SALE_DE {ts_start: row.ts_start}]->(e);
 
-// 4. Relaciones aleatorias masivas (Amigos, Viajes, Gustos y Estaciones)
-MATCH (r1:Rider), (r2:Rider) WHERE r1.id <> r2.id AND rand() < 0.04 MERGE (r1)-[:AMIGO_DE]->(r2);
-MATCH (r:Rider), (e:Estacion) WHERE rand() < 0.3 MERGE (r)-[:SALE_DE]->(e);
-MATCH (r:Rider), (i:Interes) WHERE rand() < 0.4 MERGE (r)-[:LE_GUSTA]->(i);
-MATCH (r1:Rider), (r2:Rider) WHERE r1.id <> r2.id AND rand() < 0.02 MERGE (r1)-[:VIAJO_CON]->(r2);
+// 5. Poblar el Grafo Social desde el JSON oficial exportado por el generador
+CALL apoc.load.json('file:///grafo.json') YIELD value
+UNWIND value.amigos AS amigo
+MATCH (r1:Rider {rider_id: amigo.a}), (r2:Rider {rider_id: amigo.b})
+MERGE (r1)-[:AMIGO_DE]-(r2);
 
-// 5. Inyectar el Patrón de Fraude (Obligatorio para que la query del bonus funcione)
-MATCH (e:Estacion {id: "E1"})
-MATCH (r1:Rider {id: "R10"}), (r2:Rider {id: "R11"}), (r3:Rider {id: "R12"})
-CREATE (r1)-[:SALE_DE {hora: time('08:00:00')}]->(e)
-CREATE (r2)-[:SALE_DE {hora: time('08:01:00')}]->(e)
-CREATE (r3)-[:SALE_DE {hora: time('08:01:30')}]->(e);
+// 6. Poblar la Afinidad Comercial (Gustos / Intereses)
+CALL apoc.load.json('file:///grafo.json') YIELD value
+UNWIND value.le_gusta AS gusto
+MATCH (r:Rider {rider_id: gusto.rider_id})
+MERGE (i:Interes {interes: gusto.interes})
+MERGE (r)-[:LE_GUSTA]->(i);
