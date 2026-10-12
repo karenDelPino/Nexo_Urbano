@@ -104,6 +104,7 @@ services:
       - ./05-spark:/opt/spark-apps
       - ./data:/opt/spark-data:ro
       - spark_lake:/opt/spark-lake
+      - ./09-producto:/opt/09-producto
 
 
 
