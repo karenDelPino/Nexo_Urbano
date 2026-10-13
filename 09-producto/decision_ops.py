@@ -142,3 +142,61 @@ try:
 
 except Exception as e:
     print(f"Error en la conexión a Neo4j (Pregunta 4): {e}")
+
+    
+# ---------------------------------------------------------
+# PREGUNTA 5
+# ---------------------------------------------------------
+print("="*60)
+print('5. ¿Cuánto se facturó vs. tickets de soporte "cobro"?')
+print("Motores: Spark (viajes) + WordCount (tickets de soporte)")
+print("="*60)
+
+try:
+    # --- Lo facturado: suma de la tarifa (fare_ars) de todos los viajes ---
+    df_viajes = spark.read.csv("/opt/spark-data/viajes.csv", header=True, inferSchema=True)
+    resumen = df_viajes.agg(
+        F.count("*").alias("viajes"),
+        F.round(F.sum("fare_ars"), 2).alias("facturado_ars"),
+        F.sum(F.when(F.col("fare_ars").isNull(), 1).otherwise(0)).alias("sin_tarifa"),
+        F.min("ts_start").alias("desde"),
+        F.max("ts_start").alias("hasta"),
+    ).collect()[0]
+
+    # --- Los tickets de soporte (el mismo archivo del WordCount de M5) ---
+    df_tickets = spark.read.text("/opt/spark-data/texto_ops.txt").filter(F.trim("value") != "")
+    n_tickets = df_tickets.count()
+    es_cobro = F.lower(F.col("value")).contains("cobro")
+    n_cobro = df_tickets.filter(es_cobro).count()
+    n_pago = df_tickets.filter(F.lower(F.col("value")).contains("payment_fail")).count()
+    riders_cobro = (df_tickets.filter(es_cobro)
+                    .select(F.regexp_extract("value", r"(R\d{4})", 1).alias("rider"))
+                    .filter(F.col("rider") != "").distinct().count())
+
+    # WordCount: cuántas veces aparece la palabra "cobro" (igual que en M5)
+    palabras = df_tickets.select(
+        F.explode(F.split(F.lower(F.col("value")), r"\s+")).alias("palabra"))
+    n_palabra_cobro = palabras.filter(F.col("palabra") == "cobro").count()
+
+    print(f"Facturado: ARS {resumen['facturado_ars']:,.2f} en {resumen['viajes']:,} viajes "
+          f"(de {resumen['desde']} a {resumen['hasta']})")
+    print(f"Tickets de soporte: {n_tickets:,} en total")
+    print(f'  - "cobro" (doble cobro en pase mensual): {n_cobro} '
+          f"({n_cobro / n_tickets:.1%} de los tickets), de {riders_cobro} riders distintos")
+    print(f'  - WordCount: la palabra "cobro" aparece {n_palabra_cobro} veces')
+    print(f"  - payment_fail repetido (tema de pagos, aparte): {n_pago}")
+    print("\nDATOS QUE FALLAN:")
+    print("  - Los tickets no tienen monto: NO se puede decir cuánta plata está en disputa.")
+    print("  - Los tickets no tienen fecha: no se puede comparar por mes ni por día,")
+    print("    y no hay garantía de que sean del mismo período que los viajes.")
+    print('  - Los tickets "cobro" hablan de pases mensuales; lo facturado acá es por viaje')
+    print("    (fare_ars). Los pases se facturan en Mongo, que no entra en esta cuenta.")
+    print("  - Los tickets son sintéticos (una sola frase por tema), no reclamos reales.")
+    print("  - No se calcula una tasa de reclamos por viaje: tickets y viajes no son del mismo")
+    print("    universo, sería inventar un número.")
+    if resumen["sin_tarifa"]:
+        print(f"  - {resumen['sin_tarifa']} viajes sin tarifa válida no se sumaron.")
+
+except Exception as e:
+    print(f"Error en la ejecución de la Pregunta 5: {e}")
+    
