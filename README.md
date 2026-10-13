@@ -83,7 +83,7 @@ Una celda de validación comprueba siete condiciones: tabla no vacía, el join n
 
 **Límite de los datos** El dataset de viajes es sintético: la demanda es casi uniforme entre horas y estaciones, y el `clima_codigo` del CSV se asigna de forma independiente al clima real de Buenos Aires. Por eso el 33,43% del CSV no coincide con el 13,2% del clima real, y por eso `silver_viajes_clima` conserva ambas columnas (`clima_codigo` y `weather_code`). La duración media del viaje es de 5,2 min tanto con clima adverso (32.328 viajes) como sin él (212.616), de modo que estos datos no permiten estimar un efecto real del clima sobre el uso.
 
-**Hechos Mínimos Verificables (HMV)** Notebook exportado con sus outputs visibles: `03-databricks/03_databricks.ipynb` (ejecutado el 12/10/2026). Tabla Silver de clima × viajes: `silver_viajes_clima`, 244.944 filas, en `/Volumes/workspace/default/nexourbano/silver/silver_viajes_clima`. Validación de contrato: `RESULTADO: TODO OK`. Capturas de la corrida y del resumen final en `evidencias/databricks/`.
+**Hechos Mínimos Verificables (HMV)** Notebook exportado con sus outputs visibles: `03-databricks/03_databricks.ipynb` (ejecutado el 12/10/2026). Tabla Silver de clima × viajes: `silver_viajes_clima`, 244.944 filas, en `/Volumes/workspace/default/nexourbano/silver/silver_viajes_clima`. Validación de contrato: `RESULTADO: TODO OK`.
 
 
 ## M8 - Spark batch (Bronze → Silver → Gold)
