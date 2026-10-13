@@ -88,8 +88,6 @@ Una celda de validación comprueba siete condiciones: tabla no vacía, el join n
 
 ## M8 - Spark batch (Bronze → Silver → Gold)
 
-## M8 - Spark batch (Bronze → Silver → Gold)
-
 **Script:** `05-spark/batch/job_gold.py`
 
 **Cómo correrlo** (con Docker Desktop abierto):
