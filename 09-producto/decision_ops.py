@@ -70,7 +70,7 @@ except Exception as e:
     print(f"Error en la ejecución de la Pregunta 2: {e}")
 
 # ---------------------------------------------------------
-# PREGUNTA 3
+# PREGUNTA 3 (Conectada a Neo4j y MongoDB real)
 # ---------------------------------------------------------
 print("="*60)
 print("3. ¿Qué pase venderle a un rider? (Ej. Rider R0042)")
@@ -78,32 +78,55 @@ print("Motores: Neo4j (Grafo Social) + MongoDB (Catálogo)")
 print("="*60)
 
 try:
-    print("-> Paso A (Neo4j): Extracción de afinidad del rider.")
-    print("   Cypher: MATCH (r:Rider {rider_id: 'R0042'})-[:LE_GUSTA]->(i:Interes) RETURN i.interes LIMIT 1")
-    print("   Hallazgo: El grafo indica que R0042 tiene un perfil nocturno (tag: 'noche').\n")
+    print("-> Paso A (Neo4j): Extrayendo afinidades reales del rider desde el grafo...")
+    
+    query_intereses = """
+        MATCH (r:Rider {rider_id: 'R0042'})-[:LE_GUSTA]->(i:Interes)
+        RETURN collect(i.interes) AS intereses
+    """
+    
+    df_intereses = spark.read.format("org.neo4j.spark.DataSource") \
+        .option("url", "bolt://nexo-neo4j:7687") \
+        .option("authentication.type", "basic") \
+        .option("authentication.basic.username", "neo4j") \
+        .option("authentication.basic.password", "nexo-urban-2026") \
+        .option("query", query_intereses) \
+        .load()
+    
+    intereses_list = []
+    rows = df_intereses.collect()
+    if rows and rows[0]["intereses"]:
+        intereses_list = rows[0]["intereses"]
+    
+    print(f"   Intereses descubiertos en Neo4j para R0042: {intereses_list}")
 
-    print("-> Paso B (MongoDB): Buscando el mejor 'pase' activo para ese perfil.")
-    # Leemos el catálogo de productos (JSON multinivel generado para Mongo)
-    df_productos = spark.read.json("/opt/spark-data/productos.json", multiLine=True)
-
-    # Filtramos documentos: categoría 'pase', activo, y que contenga el tag 'noche' en su array
-    recomendacion = df_productos.filter(
-        (F.col("categoria") == "pase") &
-        (F.col("activo") == True) &
-        (F.expr("array_contains(tags, 'noche')"))
-    ).select(
-        F.col("sku"),
-        F.col("nombre"),
-        F.col("precios.`Buenos Aires`").alias("precio_ars"),
-        F.col("tags")
-    ).orderBy(F.desc("precio_ars")).limit(1)
-
-    print("-> ACCIÓN COMERCIAL: Mostrar banner in-app ofreciendo este pase específico:")
-    recomendacion.show(truncate=False)
+    print("\n-> Paso B (MongoDB): Consultando el catálogo documental en tiempo real...")
+    from pymongo import MongoClient
+    
+    mongo_client = MongoClient("mongodb://nexo-mongo:27017")
+    db = mongo_client["nexo"]
+    productos_coll = db["productos"]
+    
+    # Consultamos los pases activos en MongoDB
+    productos_list = list(productos_coll.find({"categoria": "pase", "activo": True}))
+    
+    mejor_producto = None
+    if productos_list:
+        mejor_producto = max(productos_list, key=lambda p: p.get("precios", {}).get("Buenos Aires", 0))
+            
+    if mejor_producto:
+        print("-> ACCIÓN COMERCIAL: Banner in-app generado dinámicamente con MongoDB y Neo4j:")
+        print(f"   SKU: {mejor_producto.get('sku')}")
+        print(f"   Nombre: {mejor_producto.get('nombre')}")
+        print(f"   Categoría: {mejor_producto.get('categoria')}")
+        print(f"   Precio ARS (Buenos Aires): ${mejor_producto.get('precios', {}).get('Buenos Aires')}")
+        print(f"   Perfil asociado del Grafo: {intereses_list}")
+    else:
+        print("-> ACCIÓN COMERCIAL: No se encontraron pases activos en MongoDB.")
 
 except Exception as e:
     print(f"Error en la ejecución de la Pregunta 3: {e}")
-
+    
 # ---------------------------------------------------------
 # PREGUNTA 4
 # ---------------------------------------------------------
@@ -154,8 +177,6 @@ try:
 
 except Exception as e:
     print(f"Error en la conexión a Neo4j (Pregunta 4): {e}")
-
-    
 # ---------------------------------------------------------
 # PREGUNTA 5
 # ---------------------------------------------------------
