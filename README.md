@@ -48,6 +48,44 @@ abfss://bronze@nexourbanodata2026.dfs.core.windows.net/viajes/2026/09/16/viajes.
 ![Listado del contenedor bronze](evidencias/azure/captura-azure.png)
 
 
+## M3 · Databricks y volcado de Internet
+
+**Notebook colaborativo y parámetros** Se implementó en Databricks un notebook re-ejecutable (`03-databricks/03_databricks.ipynb`) que realiza el primer job de ingesta desde la web. Los parámetros de ciudad y fechas (`ciudad`, `fecha_inicio`, `fecha_fin`, `tz`), las rutas de lectura y escritura y el formato de salida están definidos como widgets al inicio. El notebook crea el Volume de destino si no existe (`CREATE VOLUME IF NOT EXISTS`) y escribe siempre en modo `overwrite`, por lo que puede ejecutarse completo (Run all) las veces que haga falta sin duplicar datos. La Access Key de Azure se ingresa por widget (`storage_key`) y no queda guardada en el repositorio.
+
+**Lectura del dataset de viajes** El notebook lee `viajes.csv` (250.000 filas × 17 columnas) desde el contenedor `bronze` de Azure Data Lake (`abfss://bronze@nexourbanodata2026.dfs.core.windows.net/viajes/2026/09/16/viajes.csv`), descargándolo con el SDK de Azure. Se realizó un perfilado con `shape`, tipos, nulos y cardinalidad por columna. La ventana temporal del dataset va del 01/03/2026 al 30/05/2026 (UTC).
+
+**Calidad de dato (Bronze → Silver)** Pasan 244.944 de 250.000 filas (98%). Se rechazaron 5.045 por duración fuera del rango 30 s – 4 h y 11 por km inválido. Las reglas de ids nulos y de fin anterior al inicio no rechazaron ninguna. Se aplica además la unicidad de `ride_id` del contrato Bronze. Las reglas y los nombres de columna (`ts_start`, `station_start`, `duration_s`) son los mismos de M8, y la zona horaria es `America/Argentina/Buenos_Aires`.
+
+**Métricas de negocio** Sobre la capa Silver se calcularon cinco métricas:
+
+| Métrica | Resultado |
+|---|---|
+| Viajes por hora (hora local) | Entre 10.000 y 10.384 por hora; mínimo a las 15 h y pico a las 20 h |
+| Duración del viaje | Mediana (p50) de 244 s (4,1 min); p95 de 771 s (12,9 min); media de 312 s |
+| Estaciones top por viajes de origen | ST019 (10.357), ST020 (10.340), ST009 (10.337), ST012 (10.320) y ST003 (10.312) |
+| Viajes por día y día de la semana | 91 días, unos 2.700 viajes por día; el sábado es el más bajo (32.755) |
+| Viajes con clima adverso (código ≥ 51) | 33,43% según el `clima_codigo` del CSV y 13,2% según el clima real de Open-Meteo (32.328 de 244.944 viajes) |
+
+**Consulta a APIs públicas**
+
+* **Open-Meteo (clima):** se consultó el endpoint histórico (`archive-api`, sin API key) para las 24 estaciones del dataset, usando las coordenadas que traen los propios viajes (el enunciado pedía al menos 3). Se obtuvieron 52.992 registros horarios (24 estaciones × 92 días × 24 horas) de temperatura, precipitación, viento y código de clima WMO.
+* **Red social pública:** el notebook consulta primero Bluesky (`app.bsky.feed.searchPosts`) y, si responde con error, pasa automáticamente a la API pública de Mastodon. En esta corrida Bluesky respondió HTTP 403 a la llamada anónima y se usó Mastodon con el hashtag `movilidad`: se obtuvieron 40 posts, de los cuales 5 mencionan un término operativo (batería, freno, estación, cobro, etc.).
+
+**Persistencia en Silver** El clima se une a cada viaje por (estación de origen, fecha, hora local). Se guardaron tres tablas en formato Parquet, en el Volume `/Volumes/workspace/default/nexourbano/silver/`:
+
+* `silver_viajes_clima`: una fila por viaje (clave `ride_id`), 244.944 filas, con una columna `match_clima` que indica si el viaje encontró clima.
+* `silver_clima_horario`: 52.992 registros de clima.
+* `silver_social_menciones`: 40 posts con la marca de término operativo.
+
+Una celda de validación comprueba siete condiciones: tabla no vacía, el join no pierde ni duplica viajes (244.944 contra 244.944), `ride_id` único, sin `ts_start` nulo, `duration_s` en [30, 14400], `km > 0` y menos del 1% de viajes sin clima (resultado: 0 sin clima). La celda termina en `TODO OK`.
+
+**Señal 2026** La ingesta no depende de un archivo bajado a mano: el clima y las menciones sociales se obtienen por API pública (Open-Meteo y Mastodon, con Bluesky como primera opción), y el dataset de viajes se lee directamente desde el data lake en Azure.
+
+**Límite de los datos** El dataset de viajes es sintético: la demanda es casi uniforme entre horas y estaciones, y el `clima_codigo` del CSV se asigna de forma independiente al clima real de Buenos Aires. Por eso el 33,43% del CSV no coincide con el 13,2% del clima real, y por eso `silver_viajes_clima` conserva ambas columnas (`clima_codigo` y `weather_code`). La duración media del viaje es de 5,2 min tanto con clima adverso (32.328 viajes) como sin él (212.616), de modo que estos datos no permiten estimar un efecto real del clima sobre el uso.
+
+**Hechos Mínimos Verificables (HMV)** Notebook exportado con sus outputs visibles: `03-databricks/03_databricks.ipynb` (ejecutado el 12/10/2026). Tabla Silver de clima × viajes: `silver_viajes_clima`, 244.944 filas, en `/Volumes/workspace/default/nexourbano/silver/silver_viajes_clima`. Validación de contrato: `RESULTADO: TODO OK`. Capturas de la corrida y del resumen final en `evidencias/databricks/`.
+
+
 ## M8 - Spark batch (Bronze → Silver → Gold)
 
 ## M8 - Spark batch (Bronze → Silver → Gold)
