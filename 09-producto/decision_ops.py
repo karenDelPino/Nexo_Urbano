@@ -105,27 +105,35 @@ except Exception as e:
     print(f"Error en la ejecución de la Pregunta 3: {e}")
 
 # ---------------------------------------------------------
-# PREGUNTA 4 (Optimizada para Demo en Vivo)
+# PREGUNTA 4
 # ---------------------------------------------------------
 print("="*60)
-print("4. ¿Hay collusion / fraude social? (Datos Reales)")
+print("4. ¿Hay colusión / fraude social? (Datos Reales)")
 print("Motores: Neo4j (Grafo Social) -> Lectura directa desde Spark")
 print("="*60)
 try:
-    print("-> Conectando a Neo4j para ejecutar análisis de fraude en tiempo real...")
-    
-    # Optimizamos anclándonos a la estación ST000 y acotando las combinaciones por ID
+    print("-> Conectando a Neo4j para ejecutar análisis de fraude...")
+
+    # Tríos de riders SIN vínculo de amistad que retiran un monopatín de la misma
+    # estación en ráfaga (menos de 120 s entre cada uno). Recorre todas las estaciones.
+    # IMPORTANTE: sin LIMIT/SKIP al final; el conector de Spark agrega los suyos.
     query_fraude = """
-        MATCH (e:Estacion {station_id: 'ST000'})<-[v1:SALE_DE]-(r1:Rider),
-              (e)<-[v2:SALE_DE]-(r2:Rider),
-              (e)<-[v3:SALE_DE]-(r3:Rider)
-        WHERE r1.rider_id < r2.rider_id AND r2.rider_id < r3.rider_id
-          AND abs(duration.inSeconds(datetime(v1.ts_start), datetime(v2.ts_start)).seconds) < 120
-          AND abs(duration.inSeconds(datetime(v2.ts_start), datetime(v3.ts_start)).seconds) < 120
-          AND NOT (r1)-[:AMIGO_DE]-(r2) AND NOT (r2)-[:AMIGO_DE]-(r3)
-        RETURN e.station_id AS station_id, r1.rider_id AS rider_1, r2.rider_id AS rider_2, r3.rider_id AS rider_3
+        MATCH (r:Rider)-[v:SALE_DE]->(e:Estacion)
+        WITH e, r, v ORDER BY e.station_id, v.ts_epoch
+        WITH e, collect({rider: r.rider_id, t: v.ts_epoch}) AS viajes
+        UNWIND range(0, size(viajes) - 3) AS i
+        WITH e, viajes[i] AS a, viajes[i+1] AS b, viajes[i+2] AS c
+        WHERE b.t - a.t < 120 AND c.t - b.t < 120
+          AND a.rider <> b.rider AND b.rider <> c.rider AND a.rider <> c.rider
+          AND NOT EXISTS { MATCH (:Rider {rider_id: a.rider})-[:AMIGO_DE]-(:Rider {rider_id: b.rider}) }
+          AND NOT EXISTS { MATCH (:Rider {rider_id: b.rider})-[:AMIGO_DE]-(:Rider {rider_id: c.rider}) }
+          AND NOT EXISTS { MATCH (:Rider {rider_id: a.rider})-[:AMIGO_DE]-(:Rider {rider_id: c.rider}) }
+        RETURN e.station_id AS station_id,
+               a.rider AS rider_1, b.rider AS rider_2, c.rider AS rider_3,
+               toString(datetime({epochSeconds: a.t})) AS hora_inicio
+        ORDER BY hora_inicio
     """
-    
+
     # Lectura real desde el contenedor nexo-neo4j
     df_fraude = spark.read.format("org.neo4j.spark.DataSource") \
         .option("url", "bolt://nexo-neo4j:7687") \
@@ -135,10 +143,14 @@ try:
         .option("query", query_fraude) \
         .load()
 
-    print("\n-> ALERTA DE FRAUDE: Se detectó el siguiente clúster de usuarios abusando del sistema:")
-    # Mostramos los primeros 3 resultados de forma instantánea
-    df_fraude.limit(3).show(truncate=False)
-    print("-> ACCIÓN OPERATIVA: Aplicar bloqueo preventivo temporal en las tarjetas de crédito de estos usuarios.")
+    print("\n-> ALERTA: se detectó el siguiente clúster de usuarios sin vínculo social")
+    print("   que retiraron monopatines de la misma estación en ráfaga:")
+    df_fraude.show(20, truncate=False)
+
+    print("-> VALIDACIÓN: no existen relaciones AMIGO_DE entre los tres usuarios y la")
+    print("   coincidencia no se repite en otras fechas ni estaciones: es un indicio, no un patrón confirmado.")
+    print("-> ACCIÓN OPERATIVA: marcar a los usuarios para revisión manual y monitoreo;")
+    print("   escalar a bloqueo solo si la coincidencia se repite.")
 
 except Exception as e:
     print(f"Error en la conexión a Neo4j (Pregunta 4): {e}")
