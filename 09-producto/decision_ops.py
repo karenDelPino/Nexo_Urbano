@@ -1,24 +1,30 @@
 import os
-from dotenv import load_dotenv
+import logging
 from pyspark.sql import SparkSession
 import pyspark.sql.functions as F
 from pyspark.sql.window import Window
 
-# === CARGAR CREDENCIALES DESDE .ENV ===
-load_dotenv()
-NEO4J_URL = os.getenv("NEO4J_URL")
-NEO4J_USER = os.getenv("NEO4J_USER")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
-MONGO_URI = os.getenv("MONGO_URI")
+# === 1. CARGA SEGURA DE CREDENCIALES (Con Fallback) ===
+# Si Docker bloquea el .env, Python usará estas credenciales por defecto automáticamente:
+NEO4J_URL = os.getenv("NEO4J_URL", "bolt://nexo-neo4j:7687")
+NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
+NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "nexo-urban-2026")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://nexo-mongo:27017")
 
-# Inicializar la sesión de Spark explícitamente
+# === 2. INICIAR SESIÓN SPARK ===
 spark = SparkSession.builder \
     .appName("NexoUrbano-M14-DecisionOps") \
     .getOrCreate()
 
-# === ESTO APAGA LOS LOGS MOLESTOS DE SPARK ===
-spark.sparkContext.setLogLevel("ERROR")
+# === 3. SILENCIADOR DE LOGS ===
+spark.sparkContext.setLogLevel("FATAL")
+logging.getLogger("py4j").setLevel(logging.FATAL)
 
+try:
+    log4j = spark._jvm.org.apache.log4j
+    log4j.LogManager.getRootLogger().setLevel(log4j.Level.FATAL)
+except Exception:
+    pass
 # ---------------------------------------------------------
 # PREGUNTA 1
 # ---------------------------------------------------------
