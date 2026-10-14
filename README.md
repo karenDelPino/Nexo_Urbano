@@ -1,5 +1,4 @@
 # NexoUrbano 2026 — pack del TP
-Copiar .env.example a .env y completar los valores antes de docker compose up
 
 Este directorio es el **pack de cátedra** del trabajo práctico evaluativo.
 
@@ -13,6 +12,7 @@ Este directorio es el **pack de cátedra** del trabajo práctico evaluativo.
 | [.env.example](.env.example) | Secretos fuera de Git |
 
 ## Arranque en 10 minutos
+Copiar .env.example a .env y completar los valores antes de docker compose up
 
 ```bash
 python3 tools/generar_datos.py --seed 101 --n-viajes 250000
