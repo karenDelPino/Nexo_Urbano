@@ -16,7 +16,7 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: crm
     ports:
-      - "3307:3307"
+      - "3307:3306"
     volumes:
       - ./data/mysql/crm_riders.sql:/docker-entrypoint-initdb.d/01_crm.sql:ro
       - mysql_data:/var/lib/mysql
@@ -31,7 +31,7 @@ services:
     container_name: nexo-mongo
     restart: unless-stopped
     ports:
-      - "27018:27018"
+      - "27018:27017"
     volumes:
       - mongo_data:/data/db
 
@@ -106,6 +106,7 @@ services:
       - ./data:/opt/spark-data:ro
       - spark_lake:/opt/spark-lake
       - ./09-producto:/opt/09-producto
+      - ./.env:/opt/.env:ro
 
 
 
