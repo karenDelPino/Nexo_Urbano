@@ -1,0 +1,19 @@
+# Contrato de Datos - Capa Silver (Clima)
+dataset: silver_clima_horario
+owner: squad_datalake
+frescura_sla: "cada 3 horas"
+grano: "un registro de pronóstico por cada estación y hora"
+timezone: "ART (UTC-3)"
+columnas_clave:
+  - nombre: station_id
+    tipo: string
+    es_pk: true
+  - nombre: ts_pronostico
+    tipo: timestamp
+    es_particion: true
+  - nombre: weather_code
+    tipo: int
+reglas_rechazo:
+  - "station_id no puede ser nulo"
+  - "weather_code debe estar en el rango de la API (0 a 100)"
+  

@@ -1,0 +1,16 @@
+# Contrato de Datos - Capa Gold (Logística)
+dataset: top_estaciones_origen
+owner: squad_decision_ops
+frescura_sla: "diaria"
+grano: "un registro por estación con su volumen total acumulado de viajes"
+timezone: "ART (UTC-3)"
+columnas_clave:
+  - nombre: station_start
+    tipo: string
+    es_pk: true
+  - nombre: viajes
+    tipo: int
+reglas_rechazo:
+  - "station_start no puede estar vacío"
+  - "viajes no puede ser negativo"
+  
