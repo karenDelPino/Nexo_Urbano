@@ -13,7 +13,7 @@ services:
     container_name: nexo-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: nexo
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: crm
     ports:
       - "3307:3307"
@@ -21,7 +21,7 @@ services:
       - ./data/mysql/crm_riders.sql:/docker-entrypoint-initdb.d/01_crm.sql:ro
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-pnexo"]
+      test: ["CMD-SHELL", "mysqladmin ping -p$$MYSQL_ROOT_PASSWORD"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -55,7 +55,7 @@ services:
       - "7474:7474"
       - "7687:7687"
     environment:
-      NEO4J_AUTH: neo4j/nexo-urban-2026
+      NEO4J_AUTH: ${NEO4J_USER}/${NEO4J_PASSWORD}
       NEO4J_PLUGINS: '["apoc"]'
       NEO4J_apoc_import_file_enabled: "true"
     volumes:
@@ -67,8 +67,8 @@ services:
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: nexo
-      MINIO_ROOT_PASSWORD: nexo-urban-2026
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     ports:
       - "9000:9000"
       - "9001:9001"

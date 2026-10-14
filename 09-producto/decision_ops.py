@@ -1,6 +1,15 @@
+import os
+from dotenv import load_dotenv
 from pyspark.sql import SparkSession
 import pyspark.sql.functions as F
 from pyspark.sql.window import Window
+
+# === CARGAR CREDENCIALES DESDE .ENV ===
+load_dotenv()
+NEO4J_URL = os.getenv("NEO4J_URL")
+NEO4J_USER = os.getenv("NEO4J_USER")
+NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
+MONGO_URI = os.getenv("MONGO_URI")
 
 # Inicializar la sesión de Spark explícitamente
 spark = SparkSession.builder \
@@ -70,63 +79,86 @@ except Exception as e:
     print(f"Error en la ejecución de la Pregunta 2: {e}")
 
 # ---------------------------------------------------------
-# PREGUNTA 3 (Conectada a Neo4j y MongoDB real)
+# PREGUNTA 3
 # ---------------------------------------------------------
 print("="*60)
 print("3. ¿Qué pase venderle a un rider? (Ej. Rider R0042)")
-print("Motores: Neo4j (Grafo Social) + MongoDB (Catálogo)")
+print("Motores: Neo4j (Grafo Social) + Spark (Ventas) + MongoDB (Catálogo)")
 print("="*60)
 
-try:
-    print("-> Paso A (Neo4j): Extrayendo afinidades reales del rider desde el grafo...")
-    
-    query_intereses = """
-        MATCH (r:Rider {rider_id: 'R0042'})-[:LE_GUSTA]->(i:Interes)
-        RETURN collect(i.interes) AS intereses
-    """
-    
-    df_intereses = spark.read.format("org.neo4j.spark.DataSource") \
-        .option("url", "bolt://nexo-neo4j:7687") \
-        .option("authentication.type", "basic") \
-        .option("authentication.basic.username", "neo4j") \
-        .option("authentication.basic.password", "nexo-urban-2026") \
-        .option("query", query_intereses) \
-        .load()
-    
-    intereses_list = []
-    rows = df_intereses.collect()
-    if rows and rows[0]["intereses"]:
-        intereses_list = rows[0]["intereses"]
-    
-    print(f"   Intereses descubiertos en Neo4j para R0042: {intereses_list}")
+RIDER_ID = "R0042"   # único parámetro: cambiá el rider y todo se recalcula
 
-    print("\n-> Paso B (MongoDB): Consultando el catálogo documental en tiempo real...")
+def leer_neo4j(query):
+    # Sin LIMIT/SKIP al final: el conector de Spark agrega los suyos.
+    return (spark.read.format("org.neo4j.spark.DataSource")
+        .option("url", NEO4J_URL)
+        .option("authentication.type", "basic")
+        .option("authentication.basic.username", NEO4J_USER)
+        .option("authentication.basic.password", NEO4J_PASSWORD)
+        .option("query", query)
+        .load())
+
+try:
+    # --- Paso A (Neo4j): intereses del rider y riders con gustos parecidos ---
+    print(f"-> Paso A (Neo4j): intereses de {RIDER_ID} y riders con gustos parecidos...")
+
+    df_intereses = leer_neo4j(f"""
+        MATCH (r:Rider {{rider_id: '{RIDER_ID}'}})-[:LE_GUSTA]->(i:Interes)
+        RETURN i.interes AS interes
+        ORDER BY interes
+    """)
+    intereses = [row["interes"] for row in df_intereses.collect()]
+    print(f"   Intereses de {RIDER_ID}: {intereses}")
+
+    df_similares = leer_neo4j(f"""
+        MATCH (r:Rider {{rider_id: '{RIDER_ID}'}})-[:LE_GUSTA]->(i:Interes)<-[:LE_GUSTA]-(otro:Rider)
+        WHERE otro <> r
+        RETURN otro.rider_id AS rider_id, count(i) AS intereses_comunes
+        ORDER BY intereses_comunes DESC
+    """)
+    print(f"   Riders con al menos un interés en común: {df_similares.count()}")
+
+    # --- Paso B (Spark): qué pases compraron esos riders ---
+    print("\n-> Paso B (Spark): qué pases compraron esos riders...")
+    ventas = spark.read.csv("/opt/spark-data/ventas.csv", header=True, inferSchema=True)
+
+    ranking_pases = (ventas.filter(F.col("categoria") == "pase")
+        .join(df_similares, "rider_id")
+        .groupBy("sku")
+        .agg(F.count("*").alias("compras"),
+             F.sum("intereses_comunes").alias("peso_afinidad")))
+
+    # --- Paso C (MongoDB): pases activos del catálogo ---
+    print("\n-> Paso C (MongoDB): cruzando con el catálogo de pases activos...")
+    import json
     from pymongo import MongoClient
-    
-    mongo_client = MongoClient("mongodb://nexo-mongo:27017")
-    db = mongo_client["nexo"]
-    productos_coll = db["productos"]
-    
-    # Consultamos los pases activos en MongoDB
-    productos_list = list(productos_coll.find({"categoria": "pase", "activo": True}))
-    
-    mejor_producto = None
-    if productos_list:
-        mejor_producto = max(productos_list, key=lambda p: p.get("precios", {}).get("Buenos Aires", 0))
-            
-    if mejor_producto:
-        print("-> ACCIÓN COMERCIAL: Banner in-app generado dinámicamente con MongoDB y Neo4j:")
-        print(f"   SKU: {mejor_producto.get('sku')}")
-        print(f"   Nombre: {mejor_producto.get('nombre')}")
-        print(f"   Categoría: {mejor_producto.get('categoria')}")
-        print(f"   Precio ARS (Buenos Aires): ${mejor_producto.get('precios', {}).get('Buenos Aires')}")
-        print(f"   Perfil asociado del Grafo: {intereses_list}")
-    else:
-        print("-> ACCIÓN COMERCIAL: No se encontraron pases activos en MongoDB.")
+
+    coleccion = MongoClient(MONGO_URI)["nexo_db"]["catalogo_productos"]
+
+    # Si el catálogo todavía no está en Mongo, se carga una sola vez desde productos.json
+    if coleccion.count_documents({}) == 0:
+        with open("/opt/spark-data/productos.json", encoding="utf-8") as f:
+            coleccion.insert_many(json.load(f))
+        print("   (Catálogo cargado en MongoDB desde productos.json)")
+
+    docs_pases = coleccion.find({"categoria": "pase", "activo": True}, {"_id": 0})
+
+    catalogo = spark.createDataFrame(
+        [(d["sku"], d["nombre"], d.get("precios", {}).get("Buenos Aires"), d.get("tags", []))
+         for d in docs_pases],
+        ["sku", "nombre", "precio_ars", "tags"])
+
+    recomendacion = (ranking_pases.join(catalogo, "sku", "inner")
+        .orderBy(F.desc("peso_afinidad"), F.desc("compras"))
+        .select("sku", "nombre", "precio_ars", "tags", "compras", "peso_afinidad")
+        .limit(1))
+
+    print(f"\n-> ACCIÓN COMERCIAL: ofrecer a {RIDER_ID} el pase que más eligieron riders con sus mismos gustos:")
+    recomendacion.show(truncate=False)
 
 except Exception as e:
     print(f"Error en la ejecución de la Pregunta 3: {e}")
-    
+
 # ---------------------------------------------------------
 # PREGUNTA 4
 # ---------------------------------------------------------
@@ -137,9 +169,6 @@ print("="*60)
 try:
     print("-> Conectando a Neo4j para ejecutar análisis de fraude...")
 
-    # Tríos de riders SIN vínculo de amistad que retiran un monopatín de la misma
-    # estación en ráfaga (menos de 120 s entre cada uno). Recorre todas las estaciones.
-    # IMPORTANTE: sin LIMIT/SKIP al final; el conector de Spark agrega los suyos.
     query_fraude = """
         MATCH (r:Rider)-[v:SALE_DE]->(e:Estacion)
         WITH e, r, v ORDER BY e.station_id, v.ts_epoch
@@ -157,12 +186,11 @@ try:
         ORDER BY hora_inicio
     """
 
-    # Lectura real desde el contenedor nexo-neo4j
     df_fraude = spark.read.format("org.neo4j.spark.DataSource") \
-        .option("url", "bolt://nexo-neo4j:7687") \
+        .option("url", NEO4J_URL) \
         .option("authentication.type", "basic") \
-        .option("authentication.basic.username", "neo4j") \
-        .option("authentication.basic.password", "nexo-urban-2026") \
+        .option("authentication.basic.username", NEO4J_USER) \
+        .option("authentication.basic.password", NEO4J_PASSWORD) \
         .option("query", query_fraude) \
         .load()
 
@@ -177,6 +205,7 @@ try:
 
 except Exception as e:
     print(f"Error en la conexión a Neo4j (Pregunta 4): {e}")
+
 # ---------------------------------------------------------
 # PREGUNTA 5
 # ---------------------------------------------------------
@@ -186,7 +215,6 @@ print("Motores: Spark (viajes) + WordCount (tickets de soporte)")
 print("="*60)
 
 try:
-    # --- Lo facturado: suma de la tarifa (fare_ars) de todos los viajes ---
     df_viajes = spark.read.csv("/opt/spark-data/viajes.csv", header=True, inferSchema=True)
     resumen = df_viajes.agg(
         F.count("*").alias("viajes"),
@@ -196,7 +224,6 @@ try:
         F.max("ts_start").alias("hasta"),
     ).collect()[0]
 
-    # --- Los tickets de soporte (el mismo archivo del WordCount de M5) ---
     df_tickets = spark.read.text("/opt/spark-data/texto_ops.txt").filter(F.trim("value") != "")
     n_tickets = df_tickets.count()
     es_cobro = F.lower(F.col("value")).contains("cobro")
@@ -206,7 +233,6 @@ try:
                     .select(F.regexp_extract("value", r"(R\d{4})", 1).alias("rider"))
                     .filter(F.col("rider") != "").distinct().count())
 
-    # WordCount: cuántas veces aparece la palabra "cobro" (igual que en M5)
     palabras = df_tickets.select(
         F.explode(F.split(F.lower(F.col("value")), r"\s+")).alias("palabra"))
     n_palabra_cobro = palabras.filter(F.col("palabra") == "cobro").count()
@@ -232,4 +258,3 @@ try:
 
 except Exception as e:
     print(f"Error en la ejecución de la Pregunta 5: {e}")
-    

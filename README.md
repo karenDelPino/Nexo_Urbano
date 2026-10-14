@@ -1,4 +1,5 @@
 # NexoUrbano 2026 — pack del TP
+Copiar .env.example a .env y completar los valores antes de docker compose up
 
 Este directorio es el **pack de cátedra** del trabajo práctico evaluativo.
 
